@@ -30,9 +30,28 @@ def ShiftRows(state):
     state[1] = [b, a]
     return state
 
+def GFMult(a, b):
+    # Multiplica dois polinômios a e b no corpo GF(16), com redução por x^4 + x + 1 (0x13 = 0b10011).
+    result = 0
+    for i in range(4):      # Até 4 bits, pois estamos em GF(2^4)
+        if b & 1:           # Se o bit menos significativo de 'b' é 1
+            result ^= a     # Soma (XOR) o valor atual de 'a' no 'result'
+        carry = a & 0x8     # Verifica se o bit mais alto (x^3) vai transbordar
+        a <<= 1             # Desloca 'a' para esquerda (multiplica por 2)
+        if carry:           # Se passou de grau 4, reduz com o polinômio irreduzível
+            a ^= 0b10011
+        a &= 0xF            # Garante que a continue com no máximo 4 bits
+        b >>= 1             # Desloca 'b' para direita (divide por 2)
+    return result & 0xF     # Resultado final limitado a 4 bits
 
-def MixColumns():
-    pass
+
+def MixColumns(state):
+    # Aplica a transformação MixColumns em uma matriz 2x2 no GF(16)
+    s00 = GFMult(0x1, state[0][0]) ^ GFMult(0x4, state[1][0])
+    s10 = GFMult(0x4, state[0][0]) ^ GFMult(0x1, state[1][0])
+    s01 = GFMult(0x1, state[0][1]) ^ GFMult(0x4, state[1][1])
+    s11 = GFMult(0x4, state[0][1]) ^ GFMult(0x4, state[1][1])
+    return [[s00, s01], [s10, s11]] 
 
 def KeyExpansion():
     pass
@@ -46,9 +65,13 @@ def Saes():
     after_sub = SubNibbles(initial_state)
     print(f"Após SubNibbles: {after_sub}")
 
-    #ShiftRows
+    # ShiftRows
     after_shift = ShiftRows(after_sub)
     print(f"Após ShiftRows: {after_shift}")
+
+    # MixColumns
+    after_mix = MixColumns(after_shift)
+    print(f"Após MixColumns: {after_mix}")
 
     return 
 
