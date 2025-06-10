@@ -8,8 +8,16 @@ S_BOX = {
     0xC: 0xC,  0xD: 0xE,  0xE: 0xF,  0xF: 0x7
 }
 
-def AddRoundKey():
-    pass
+def AddRoundKey(state, key):
+    # Realiza a operação XOR entre o estado e a subchave
+    new_state = []
+    for i in range(2):
+        new_row = []
+        for j in range(2):
+            xor = state[i][j] ^ key[i][j]
+            new_row.append(xor)
+        new_state.append(new_row)
+    return new_state
 
 def SubNibbles(state):
     # Aplica a substituição de nibble via S-Box em cada elemento do estado
@@ -72,6 +80,12 @@ def Saes():
     # MixColumns
     after_mix = MixColumns(after_shift)
     print(f"Após MixColumns: {after_mix}")
+
+    # AddRoundKey
+    # key = 1010 0111 0011 1011 -> 0xA 0x7 0x3 0xB -> nibbles [[10, 7], [3, 11]]
+    key = [[0xA, 0x7], [0x3, 0xB]]
+    after_xor = AddRoundKey(after_mix, key)
+    print(f"Após AddRoundKey: {after_xor}")
 
     return 
 
