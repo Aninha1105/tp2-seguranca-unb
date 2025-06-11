@@ -41,7 +41,7 @@ def ShiftRows(state):
 def GFMult(a, b):
     # Multiplica dois polinômios a e b no corpo GF(16), com redução por x^4 + x + 1 (0x13 = 0b10011).
     result = 0
-    for i in range(4):      # Até 4 bits, pois estamos em GF(2^4)
+    for i in range(4):      # Até 4 bits, pois estamos em GF(16 = 2^4)
         if b & 1:           # Se o bit menos significativo de 'b' é 1
             result ^= a     # Soma (XOR) o valor atual de 'a' no 'result'
         carry = a & 0x8     # Verifica se o bit mais alto (x^3) vai transbordar
@@ -52,14 +52,13 @@ def GFMult(a, b):
         b >>= 1             # Desloca 'b' para direita (divide por 2)
     return result & 0xF     # Resultado final limitado a 4 bits
 
-
 def MixColumns(state):
     # Aplica a transformação MixColumns em uma matriz 2x2 no GF(16)
     s00 = GFMult(0x1, state[0][0]) ^ GFMult(0x4, state[1][0])
     s10 = GFMult(0x4, state[0][0]) ^ GFMult(0x1, state[1][0])
     s01 = GFMult(0x1, state[0][1]) ^ GFMult(0x4, state[1][1])
-    s11 = GFMult(0x4, state[0][1]) ^ GFMult(0x4, state[1][1])
-    return [[s00, s01], [s10, s11]] 
+    s11 = GFMult(0x4, state[0][1]) ^ GFMult(0x1, state[1][1])
+    return [[s00, s01], [s10, s11]]
 
 def KeyExpansion():
     pass
@@ -78,7 +77,8 @@ def Saes():
     print(f"Após ShiftRows: {after_shift}")
 
     # MixColumns
-    after_mix = MixColumns(after_shift)
+    test_mix = [[0x2,0xE], [0xE, 0xE]]
+    after_mix = MixColumns(test_mix)
     print(f"Após MixColumns: {after_mix}")
 
     # AddRoundKey
@@ -86,6 +86,8 @@ def Saes():
     key = [[0xA, 0x7], [0x3, 0xB]]
     after_xor = AddRoundKey(after_mix, key)
     print(f"Após AddRoundKey: {after_xor}")
+
+    #after_expand = KeyExpansion(key)
 
     return 
 
