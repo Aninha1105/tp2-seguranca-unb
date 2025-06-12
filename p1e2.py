@@ -1,3 +1,5 @@
+from lib import *
+
 # Parte 1: Implementação do S-AES
 
 # Tabela fixa de substituição (S-Box) para S-AES
@@ -126,6 +128,11 @@ def Saes():
     print("K1:", k1)
     print("K2:", k2)
     
+    #testes aux
+    b = mtxToBin(init_key)
+    print(b)
+    print(binToBase64(b)) #o3s
+
     return
 
 # Parte 2: Modo de Operação ECB com S-AES
