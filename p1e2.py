@@ -8,6 +8,9 @@ S_BOX = {
     0xC: 0xC,  0xD: 0xE,  0xE: 0xF,  0xF: 0x7
 }
 
+RCON1 = 0x80 # 1000 0000
+RCON2 = 0x30 # 0011 0000
+
 def AddRoundKey(state, key):
     # Realiza a operação XOR entre o estado e a subchave
     new_state = []
@@ -60,8 +63,35 @@ def MixColumns(state):
     s11 = GFMult(0x4, state[0][1]) ^ GFMult(0x1, state[1][1])
     return [[s00, s01], [s10, s11]]
 
-def KeyExpansion():
-    pass
+def KeyExpansion(init):
+
+    def SubWord(word):
+        n1 = (word>>4) & 0xF
+        n2 = word & 0xF
+        
+        s_n1 = S_BOX[n1]
+        s_n2 = S_BOX[n2]
+
+        return (s_n1<<4) | s_n2
+    
+    def Rotate(word):
+        return ((word & 0xF)<<4) | ((word>>4) & 0xF)
+    
+    w0 = (init[0][0]<<4) | init[1][0]
+    w1 = (init[0][1]<<4) | init[1][1]
+
+    # w2 = w0^Rcon1^rotate(w1)
+    w2 = w0^RCON1^SubWord(Rotate(w1))
+    w3 = w2^w1
+
+    # w4 = w2^Rcon2^rotate(w3)
+    w4 = w2^RCON2^SubWord(Rotate(w3))
+    w5 = w4^w3
+
+    k1 = [[(w2>>4) & 0xF, (w3>>4) & 0xF], [w2 & 0xF, w3 & 0xF]]
+    k2 = [[(w4>>4) & 0xF, (w5>>4) & 0xF], [w4 & 0xF, w5 & 0xF]]
+
+    return init, k1, k2
 
 def Saes():
     # Estado inicial: "ok" em ascii -> 0x6F 0x6B -> nibbles [[6, 15], [6, 11]]
@@ -89,7 +119,14 @@ def Saes():
 
     #after_expand = KeyExpansion(key)
 
-    return 
+    # testes 
+    init_key = [[0xA, 0x7], [0x3, 0xB]]  #1010 0111 0011 1011
+    k0, k1, k2 = KeyExpansion(init_key)
+    print("K0:", k0)
+    print("K1:", k1)
+    print("K2:", k2)
+    
+    return
 
 # Parte 2: Modo de Operação ECB com S-AES
 
@@ -98,3 +135,4 @@ def EncryptSaesEcb():
 
 
 Saes()
+
