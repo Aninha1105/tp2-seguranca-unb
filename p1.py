@@ -98,8 +98,8 @@ def KeyExpansion(init):
 def WordToMtx(high, low):
     return [[(high & 0xF0) >> 4, high & 0x0F], [(low & 0xF0) >> 4, low & 0x0F]]
 
-# Função para printar as saídas intermediárias em hexadecimal e base64
 def MtxOut(label, state):
+    # Função para printar as saídas intermediárias em hexadecimal e base64
     bin_str = mtxToBin(state)
     hex_out = f"{int(bin_str, 2):04X}"
     b64_out = binToBase64(bin_str)
@@ -146,11 +146,6 @@ def Saes(text, key):
 
     ciphertext = state   
     return ciphertext
-
-# Parte 2: Modo de Operação ECB com S-AES
-
-def EncryptSaesEcb():
-    pass
 
 
 if __name__ == "__main__":
