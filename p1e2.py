@@ -36,11 +36,11 @@ def SubNibbles(state):
     return new_state
 
 def ShiftRows(state):
-    # Realiza a rotação da linha do S-AES.
-    # Linha 0: sem alteração
-    # Linha 1: rotação circular à esquerda
-    a, b = state[1]
-    state[1] = [b, a]
+    # Realiza a rotação do 2 e 4 nibble do S-AES.
+    a = state[0][1]
+    b = state[1][1]
+    state[0][1] = b
+    state[1][1] = a
     return state
 
 def GFMult(a, b):
@@ -59,11 +59,11 @@ def GFMult(a, b):
 
 def MixColumns(state):
     # Aplica a transformação MixColumns em uma matriz 2x2 no GF(16)
-    s00 = GFMult(0x1, state[0][0]) ^ GFMult(0x4, state[1][0])
-    s10 = GFMult(0x4, state[0][0]) ^ GFMult(0x1, state[1][0])
-    s01 = GFMult(0x1, state[0][1]) ^ GFMult(0x4, state[1][1])
-    s11 = GFMult(0x4, state[0][1]) ^ GFMult(0x1, state[1][1])
-    return [[s00, s01], [s10, s11]]
+    s00 = GFMult(0x1, state[0][0]) ^ GFMult(0x4, state[0][1])
+    s10 = GFMult(0x4, state[0][0]) ^ GFMult(0x1, state[0][1])
+    s01 = GFMult(0x1, state[1][0]) ^ GFMult(0x4, state[1][1])
+    s11 = GFMult(0x4, state[1][0]) ^ GFMult(0x1, state[1][1])
+    return [[s00, s10], [s01, s11]]
 
 def KeyExpansion(init):
 
@@ -79,8 +79,8 @@ def KeyExpansion(init):
     def Rotate(word):
         return ((word & 0xF)<<4) | ((word>>4) & 0xF)
     
-    w0 = (init[0][0]<<4) | init[1][0]
-    w1 = (init[0][1]<<4) | init[1][1]
+    w0 = (init[0][0]<<4) | init[0][1]
+    w1 = (init[1][0]<<4) | init[1][1]
 
     # w2 = w0^Rcon1^rotate(w1)
     w2 = w0^RCON1^SubWord(Rotate(w1))
@@ -90,50 +90,62 @@ def KeyExpansion(init):
     w4 = w2^RCON2^SubWord(Rotate(w3))
     w5 = w4^w3
 
-    k1 = [[(w2>>4) & 0xF, (w3>>4) & 0xF], [w2 & 0xF, w3 & 0xF]]
-    k2 = [[(w4>>4) & 0xF, (w5>>4) & 0xF], [w4 & 0xF, w5 & 0xF]]
+    k1 = [[(w2>>4) & 0xF, w2 & 0xF], [(w3>>4) & 0xF, w3 & 0xF]]
+    k2 = [[(w4>>4) & 0xF, w4 & 0xF], [(w5>>4) & 0xF, w5 & 0xF]]
 
     return init, k1, k2
 
-def Saes():
-    # Estado inicial: "ok" em ascii -> 0x6F 0x6B -> nibbles [[6, 15], [6, 11]]
-    initial_state = [[0x6, 0xF], [0x6, 0xB]]
-    print(f"Estado inicial: {initial_state}")
+def WordToMtx(high, low):
+    return [[(high & 0xF0) >> 4, high & 0x0F], [(low & 0xF0) >> 4, low & 0x0F]]
 
-    # SubNibbles
-    after_sub = SubNibbles(initial_state)
-    print(f"Após SubNibbles: {after_sub}")
-
-    # ShiftRows
-    after_shift = ShiftRows(after_sub)
-    print(f"Após ShiftRows: {after_shift}")
-
-    # MixColumns
-    test_mix = [[0x2,0xE], [0xE, 0xE]]
-    after_mix = MixColumns(test_mix)
-    print(f"Após MixColumns: {after_mix}")
-
-    # AddRoundKey
-    # key = 1010 0111 0011 1011 -> 0xA 0x7 0x3 0xB -> nibbles [[10, 7], [3, 11]]
-    key = [[0xA, 0x7], [0x3, 0xB]]
-    after_xor = AddRoundKey(after_mix, key)
-    print(f"Após AddRoundKey: {after_xor}")
-
-    #after_expand = KeyExpansion(key)
-
-    # testes 
-    init_key = [[0xA, 0x7], [0x3, 0xB]]  #1010 0111 0011 1011
-    k0, k1, k2 = KeyExpansion(init_key)
-    print("K0:", k0)
-    print("K1:", k1)
-    print("K2:", k2)
-    
-    #testes aux
-    b = mtxToBin(init_key)
-    print(b)
-    print(binToBase64(b)) #o3s
-
+# Função para printar as saídas intermediárias em hexadecimal e base64
+def MtxOut(label, state):
+    bin_str = mtxToBin(state)
+    hex_out = f"{int(bin_str, 2):04X}"
+    b64_out = binToBase64(bin_str)
+    print(f"{label}: HEX: {hex_out} | BASE64: {b64_out}")
     return
+
+def Saes(text, key):
+    # Estado inicial 
+    state = WordToMtx((text & 0xFF00) >> 8, text & 0x00FF)
+    MtxOut("Inicial State", state)
+    key = WordToMtx((key & 0xFF00) >> 8, key & 0x00FF)
+    MtxOut("Key", key)
+
+    # Key expansion
+    k0, k1, k2 = KeyExpansion(key)
+    print(f"After KeyExpansion:")
+    MtxOut("k0", k0)
+    MtxOut("k1", k1)
+    MtxOut("k2", k2)
+
+    # Pré-rodada
+    state = AddRoundKey(state, k0)
+    MtxOut("After AddRoundKey(k0)", state)
+
+    # Rodada 1
+    print("Round 1:")
+    state = SubNibbles(state)
+    MtxOut("After SubNibbles", state)
+    state = ShiftRows(state)
+    MtxOut("After ShiftRows", state)
+    state = MixColumns(state)
+    MtxOut("After MixColumns", state)
+    state = AddRoundKey(state, k1)
+    MtxOut("After AddRoundKey(k1)", state)
+
+    # Rodada 2
+    print("Round 2:")
+    state = SubNibbles(state)
+    MtxOut("After SubNibbles", state)
+    state = ShiftRows(state)
+    MtxOut("After ShiftRows", state)
+    state = AddRoundKey(state, k2)
+    MtxOut("After AddRoundKey(k2)", state)
+
+    ciphertext = state   
+    return ciphertext
 
 # Parte 2: Modo de Operação ECB com S-AES
 
@@ -141,5 +153,9 @@ def EncryptSaesEcb():
     pass
 
 
-Saes()
+if __name__ == "__main__":
+    text = 0x6F6B   # "ok" -> 0110 1111 0110 1011
+    key = 0xA73B    # 1010 0111 0011 1011
 
+    ciphertext = Saes(text, key)
+    MtxOut("Ciphertext", ciphertext)
