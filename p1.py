@@ -1,6 +1,5 @@
-from lib import *
-
 # Parte 1: Implementação do S-AES
+from lib import *
 
 # Tabela fixa de substituição (S-Box) para S-AES
 S_BOX = {
@@ -95,62 +94,58 @@ def KeyExpansion(init):
 
     return init, k1, k2
 
-def WordToMtx(high, low):
-    return [[(high & 0xF0) >> 4, high & 0x0F], [(low & 0xF0) >> 4, low & 0x0F]]
-
-def MtxOut(label, state):
-    # Função para printar as saídas intermediárias em hexadecimal e base64
-    bin_str = mtxToBin(state)
-    hex_out = f"{int(bin_str, 2):04X}"
-    b64_out = binToBase64(bin_str)
-    print(f"{label}: HEX: {hex_out} | BASE64: {b64_out}")
-    return
-
 def Saes(text, key):
     # Estado inicial 
     state = WordToMtx((text & 0xFF00) >> 8, text & 0x00FF)
-    MtxOut("Inicial State", state)
+    MtxOut("Inicial State: ", state)
     key = WordToMtx((key & 0xFF00) >> 8, key & 0x00FF)
-    MtxOut("Key", key)
+    MtxOut("Key: ", key)
 
     # Key expansion
     k0, k1, k2 = KeyExpansion(key)
-    print(f"After KeyExpansion:")
-    MtxOut("k0", k0)
-    MtxOut("k1", k1)
-    MtxOut("k2", k2)
+    print(f"\n--- After KeyExpansion ---")
+    MtxOut("k0: ", k0)
+    MtxOut("k1: ", k1)
+    MtxOut("k2: ", k2)
 
     # Pré-rodada
     state = AddRoundKey(state, k0)
-    MtxOut("After AddRoundKey(k0)", state)
+    MtxOut("\n--- After AddRoundKey(k0) ---\n", state)
 
     # Rodada 1
-    print("Round 1:")
+    print("\n--- Round 1 ---")
     state = SubNibbles(state)
-    MtxOut("After SubNibbles", state)
+    MtxOut("After SubNibbles: ", state)
     state = ShiftRows(state)
-    MtxOut("After ShiftRows", state)
+    MtxOut("After ShiftRows: ", state)
     state = MixColumns(state)
-    MtxOut("After MixColumns", state)
+    MtxOut("After MixColumns: ", state)
     state = AddRoundKey(state, k1)
-    MtxOut("After AddRoundKey(k1)", state)
+    MtxOut("After AddRoundKey(k1): ", state)
 
     # Rodada 2
-    print("Round 2:")
+    print("\n--- Round 2 ---")
     state = SubNibbles(state)
-    MtxOut("After SubNibbles", state)
+    MtxOut("After SubNibbles: ", state)
     state = ShiftRows(state)
-    MtxOut("After ShiftRows", state)
+    MtxOut("After ShiftRows: ", state)
     state = AddRoundKey(state, k2)
-    MtxOut("After AddRoundKey(k2)", state)
+    MtxOut("After AddRoundKey(k2): ", state)
 
     ciphertext = state   
     return ciphertext
-
 
 if __name__ == "__main__":
     text = 0x6F6B   # "ok" -> 0110 1111 0110 1011
     key = 0xA73B    # 1010 0111 0011 1011
 
+    print("=" * 70)
+    print("SETUP")
+    print(f"Chave (Hex): {key}")
+    print(f"Mensagem Original: ok")
+    print("=" * 70)
+
     ciphertext = Saes(text, key)
-    MtxOut("Ciphertext", ciphertext)
+    print(f"\n--- Saída Final ---")
+    MtxOut("Ciphertext: ", ciphertext)
+    print("=" * 70)
