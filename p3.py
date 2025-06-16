@@ -2,6 +2,8 @@
 import time
 import base64
 import os
+import math
+from collections import Counter
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
@@ -9,7 +11,12 @@ from cryptography.hazmat.backends import default_backend
 key = os.urandom(16)
 txt = b"ok"
 
-def run_aes(k, data, mode):
+def shannon_entropy(data: bytes) -> float:
+    counts = Counter(data)
+    lenght = len(data)
+    return -sum((cnt/lenght) * math.log2(cnt/lenght) for cnt in counts.values())
+
+def run_aes(k: bytes, data: bytes, mode: str) -> dict:
 
     # aplica padding (ECB e CBC exigem, CFB, OFB, CTR não exigem). 
     if mode in ["ECB", "CBC"]:
@@ -45,7 +52,8 @@ def run_aes(k, data, mode):
 
     return {
         "b64": base64.b64encode(res).decode('utf-8'),
-        "iv_nonce_hex": iv_nonce.hex() if iv_nonce else "N/A"
+        "iv_nonce_hex": iv_nonce.hex() if iv_nonce else "N/A",
+        "bytes": res
     }
 
 
@@ -56,6 +64,7 @@ print(f"Mensagem Original: {txt.decode('utf-8')}")
 print("=" * 70)
 
 time_result = {}
+entropies = {}
 
 aes_modes = ["ECB", "CBC", "CFB", "OFB", "CTR"]
 
@@ -68,6 +77,9 @@ for mode in aes_modes:
 
     calc_time = (end-begin)*1000 # ms
     time_result[mode] = calc_time
+
+    ent = shannon_entropy(res["bytes"])
+    entropies[mode] = ent
     
     print(f"IV/Nonce (Hex): {res['iv_nonce_hex'].upper()}")
     print(f"Texto Cifrado (Base64): {res['b64']}")
@@ -77,4 +89,9 @@ for mode in aes_modes:
 print("\n\n--- DESEMPENHO ---")
 for mode_name, t in sorted(time_result.items(), key=lambda item:item[1]):
     print(f"Modo {mode_name:<5}: {t:.6f} ms")
+
+print("\n--- ALEATORIEDADE (Entropia) ---")
+for mode_name, e in sorted(entropies.items(), key=lambda item:item[1]):
+    print(f"Modo {mode_name:<5}: {e:.4f} bits/byte")
+
 print("=" * 70)
