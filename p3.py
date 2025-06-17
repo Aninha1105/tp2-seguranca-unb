@@ -1,5 +1,5 @@
 # Parte 3: AES real com biblioteca
-import time     # Importa módulo para medir tempo de execução.
+import timeit     # Importa módulo para medir tempo de execução.
 import base64   # Importa módulo para codificação e decodificação em Base64.
 import os       # Importa módulo para geração de números aleatórios.
 import math     # Importa funções matemáticas para cálculo de entropia.
@@ -75,7 +75,7 @@ def run_aes(k: bytes, data: bytes, mode: str) -> dict:
 print("=" * 70)
 print("SETUP")
 print(f"Chave (Hex): {key.hex().upper()}")
-print(f"Mensagem Original: {txt.decode('utf-8')}")
+#print(f"Mensagem Original: {txt.decode('utf-8')}")
 print("=" * 70)
 
 time_result = {}    # Armazena tempo de execução por modo
@@ -87,13 +87,18 @@ aes_modes = ["ECB", "CBC", "CFB", "OFB", "CTR"]
 for mode in aes_modes:
     print(f"\n--- MODO {mode} ---")
 
-    begin = time.perf_counter()
-    res = run_aes(key, txt, mode)
-    end = time.perf_counter()
-
-    # Cálculo de tempo em milissegundos
-    calc_time = (end-begin)*1000 
+    # Medição precisa com timeit
+    timer = timeit.Timer(lambda: run_aes(key, txt, mode))
+    times = timer.repeat(repeat=5, number=10)  # 5 execuções de 10 iterações
+    
+    # Pegamos o menor tempo como referência (menos interferência do sistema)
+    best_time = min(times) / 10  # Tempo por operação em segundos
+    calc_time = best_time * 1000  # Convertendo para ms
+    
     time_result[mode] = calc_time
+    
+    # Execução única para obter resultados
+    res = run_aes(key, txt, mode)
 
     # Cálculo de entropia de Shannon
     ent = shannon_entropy(res["bytes"])
