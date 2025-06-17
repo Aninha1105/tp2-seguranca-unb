@@ -10,7 +10,7 @@ Este repositório apresenta uma implementação didática do algoritmo Simplifie
 
 - Python 3.7 ou superior
 - Biblioteca `cryptography` (instalação via `pip install cryptography`)
-- Módulos padrão: `base64`, `time`, `os`, `math`, `collections`
+- Módulos padrão: `base64`, `timeit`, `os`, `math`, `collections`
 
 # Como executar
 
